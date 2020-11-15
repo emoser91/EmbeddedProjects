@@ -1,15 +1,14 @@
-/* Basic Project to test programming to the Ardino Uno
+/* Basic Project to test programming to the Arduino Uno
    This project uses the Arduino Framework
    This project is compiled using Platform.io extension for VSCode
    The Check mark on the bottom of the screen in the blue banner is to build 
    The Arrow is to upload to the board. Note it will auto select COM port. 
    If a serial com is set up then the plug icon can be used to view it.
-   Note that you also need to download the Aduino software first for it all to work.  
+   Note that you also need to download the Arduino software first for it all to work.  
 
    The Basic Program flashes output digital 13/PB5 at the rate of the specified delay. 
    The program will also print out to the terminal via serial coms after each loop. 
 */
-
 
 #include <Arduino.h>
 
