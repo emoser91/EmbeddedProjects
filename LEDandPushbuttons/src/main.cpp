@@ -27,6 +27,10 @@
 
 #include <Arduino.h>
 
+// Required if built in Eclipse
+// #include <avr/io.h>
+// #include <inttypes.h>
+
 #define CYCLES_PER_US 16				// cpu cycles per microsecond
 #define PUSHBUTTON_1 3
 #define PUSHBUTTON_2 2
@@ -106,7 +110,33 @@ int main (void)
   return 0;
 }
 
-// Functions 
+// Note: For some reason the delays need to be first for it to compile succesfully
+// delay for us micro-seconds 
+// delay times are only half-way accurate if optimization is turned on to level 3!
+// max value for us is 65535/4*CYCLES_PER_US
+// which is app. 17777 for 14.7456MHZ
+void delay_us(uint16_t us)
+{
+	uint16_t _count;
+	_count=us/4*CYCLES_PER_US;
+	
+	asm volatile (
+		"1: sbiw %0,1" "\n\t"
+		"brne 1b"
+		: "=w" (_count)
+		: "0" (_count)
+	);
+}
+
+void delay_ms(uint16_t ms) 
+{
+	volatile uint16_t i;
+
+	for(i = ms; i > 0; i--)
+	{
+		delay_us(1000);
+	}
+} 
 
 void shiftRight(int ledposition, uint8_t delayValue)
 {
@@ -149,30 +179,3 @@ int pushbuttonScan(void)
 	return buttonPressStatus;
 
 }
-
-// delay for us micro-seconds 
-// delay times are only half-way accurate if optimization is turned on to level 3!
-// max value for us is 65535/4*CYCLES_PER_US
-// which is app. 17777 for 14.7456MHZ
-void delay_us(uint16_t us)
-{
-	uint16_t _count;
-	_count=us/4*CYCLES_PER_US;
-	
-	asm volatile (
-		"1: sbiw %0,1" "\n\t"
-		"brne 1b"
-		: "=w" (_count)
-		: "0" (_count)
-	);
-}
-
-void delay_ms(uint16_t ms) 
-{
-	volatile uint16_t i;
-
-	for(i = ms; i > 0; i--)
-	{
-		delay_us(1000);
-	}
-} 
