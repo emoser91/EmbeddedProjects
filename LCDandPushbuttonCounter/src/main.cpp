@@ -31,7 +31,6 @@
 
 */
 
-
 #include <avr/io.h>
 #include <inttypes.h>
 #include "MSOE/delay.c"
@@ -40,24 +39,108 @@
 
 #include <Arduino.h>
 
+#define PUSHBUTTON_1 3
+#define PUSHBUTTON_2 2
+#define PUSHBUTTON_1_AND_2 1
+#define PUSHBUTTON_RESET 4
 
 int main (void )
 {
-	// int count;
+  // Set up digital inputs
+  DDRC &= (~(1<<PORTC0)) & (~(1<<PORTC1));
+  PORTC |= (1<<PORTC0) | (1<<PORTC1); //setting pull up resistors
 
+  int count = 0;
+  int mastercount = 0;
+  int button1resetflag = 0;
+  int button2resetflag = 0;
+	int buttonScan;
+
+  // Function prototypes
+	int pushbuttonScan(void);
+
+  //Initialize LCD Screen
 	lcd_init();
-	// lcd_print_int8(1);
 	lcd_clear();
 	lcd_home();
-	lcd_printf("HELLO WORLD");
 
-	// count = 0;
-	// while(1)
-	// {
-	// 	lcd_goto_xy(0,1);
-	// 	lcd_printf("%d",count);
-	// 	delay_ms(1000);
-	// 	count++;
+  //Initial LCD Print
+  lcd_printf("(ADD)      (SUB)");
+  lcd_goto_xy(7,1);
+  lcd_printf("%d",mastercount);
 
-	// }
+  while(1)
+  {
+    // Checking status of buttons
+    buttonScan = pushbuttonScan();
+
+    if(buttonScan == PUSHBUTTON_RESET)
+    {
+      //Could have individual resets instead but it shouldnt matter
+      button1resetflag = 0;
+      button2resetflag = 0;
+    }
+
+    if((buttonScan == PUSHBUTTON_1) & (!button1resetflag))
+    {
+      count = count + 1;
+      button1resetflag = 1;
+    }
+
+    if((buttonScan == PUSHBUTTON_2) & (!button2resetflag))
+    {
+      count = count - 1;
+      button2resetflag = 1;
+    }
+
+    //Run the Printing of on the LCD
+    //Only update LCD if the count changed
+    if(mastercount != count)
+    {
+      mastercount = count;
+      lcd_clear();
+      lcd_home();
+      lcd_printf("(ADD)      (SUB)");
+      lcd_goto_xy(7,1);
+      lcd_printf("%d", mastercount);
+    }
+
+  }
+
+  return 0;
+}
+
+
+int pushbuttonScan(void)
+{
+  int buttonPressStatus = 0;
+
+  //Bit Masking inputs for each button
+  //Note that if a button is not pressed it reads high because of the pullup resistors
+  uint8_t button1and2Check = PINC & 0b00000011;
+  uint8_t button1Check = PINC & 0b00000001;
+  uint8_t button2Check = PINC & 0b00000010;
+  
+  if(button1and2Check == 0b00000000)
+  {
+    buttonPressStatus = PUSHBUTTON_1_AND_2;
+  }
+
+  else if(button1Check == 0b00000000)
+  {
+    buttonPressStatus = PUSHBUTTON_1;
+  }
+
+  else if(button2Check == 0b00000000)
+  {
+    buttonPressStatus = PUSHBUTTON_2;
+  }
+
+  else if(button1and2Check == 0b00000011)
+  {
+      buttonPressStatus = PUSHBUTTON_RESET;
+  }
+
+  return buttonPressStatus;
+
 }
