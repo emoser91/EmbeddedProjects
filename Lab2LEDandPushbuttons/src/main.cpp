@@ -15,11 +15,17 @@
   *The push buttons must be read within a funciton
   *If both push buttons are pressed at the same time then reset and restart the sequence at the original speed
 
+  I created two functions for two different options if putton 2 is pressed. 
+  One version a press and hold will cause a visable change in speed
+  The other assumes you are doing individual presses 
+
   Inputs:
-  *PC0 (button1), PC1(button2)
+  *PC0 (button1), PC1(button2): Both buttons are then wired to ground
   
   Outputs:
-  *PB0 (LED1), PB1 (LED2), PB2 (LED3), PB3 (LED4), PB4 (LED5)
+  *PB0 (LED1), PB1 (LED2), PB2 (LED3), PB3 (LED4), PB4 (LED5): All Leds run through their own 300ohm resistor then to ground. 
+
+  Note: This was written in the Aduino Sketch Style file format but was written without the predefined functions. 
 
   Author: Eric Moser 11/2020
 
@@ -47,6 +53,9 @@ int main (void)
 
 	uint8_t delayValue = 100;
 	int buttonScan;
+
+  // Used for option 2 of putton 2 press
+  // uint8_t button2Pressflag = 0;
 
   // Function prototypes
 	int pushbuttonScan(void);
@@ -78,10 +87,10 @@ int main (void)
         buttonScan = pushbuttonScan();
       }
 
+      // Assumes press and hold of button for visable changes in speed
       if(buttonScan == PUSHBUTTON_2)
       {
         // Reset the delay value if it reaches max speed
-        // Assumes press and hold of button for visable changes in speed
         if(delayValue == 0)
         {
           delayValue = 100;
@@ -92,6 +101,27 @@ int main (void)
           delayValue = delayValue - 1;
         }
       }
+
+      // Assumes press and release of button for visable changes in speed
+      // Speeding up would happen after you press the button but not continue to speed up until you release and press again
+      // if(buttonScan == PUSHBUTTON_2)
+      // {
+      //   // Reset the delay value if it reaches max speed
+      //   if(delayValue == 0)
+      //   {
+      //     delayValue = 100;
+      //   }
+      //   else if(button2Pressflag == 0)
+      //   {
+      //     // Reduce the delay thus speeding up the pattern
+      //     delayValue = delayValue - 10;
+      //     button2Pressflag = 1;
+      //   }
+      // }
+      // if(buttonScan != PUSHBUTTON_2)
+      // {
+      //   button2Pressflag = 0;
+      // }
 
       // Running LED output
       if(i <= 4)

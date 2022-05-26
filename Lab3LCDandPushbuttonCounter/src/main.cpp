@@ -1,5 +1,5 @@
 /* This project is a review of the Embedded lab #3 LCD and Pushbutton Counter
-  Note: This progject wasnt linking the header files for the longest time
+  Note: This project wasnt linking the header files for the longest time
   I finally got them to all link and not really sure what the issue was
 
   Interface the LCD panel 16x2 and a pair of pushbuttons to the Arduino Uno
@@ -15,19 +15,19 @@
   *The count can be either positive or negative
 
   Inputs:
-  *PC0 (button1), PC1(button2)
+  *PC0 (button1), PC1(button2): Both buttons are then wired to ground
 
   Outputs: 
   LCD 16x2 Wiring:
 	rs-PB5
-    R/w-GND
-    E-PB4
-    DB 4:7-PD4:7
-    Vss-GND
-    Vee-pot-(5v,GND)
-    Vdd-5v
-    PC0-button1
-    PC1-button2
+  R/w-GND
+  E-PB4
+  DB 4:7-PD4:7
+  Vss-GND
+  Vee-pot-(5v,GND)
+  Vdd-5v
+  PC0-button1
+  PC1-button2
 
 */
 
