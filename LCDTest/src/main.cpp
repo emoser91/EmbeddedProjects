@@ -17,7 +17,7 @@ programmed garbage to the LCD until it finally started working.
 #include <Arduino.h>
 
 
-int main (void )
+int main (void)
 {
 	int count;
 
@@ -33,6 +33,5 @@ int main (void )
 		lcd_printf("%d",count);
 		delay_ms(1000);
 		count++;
-
 	}
 }

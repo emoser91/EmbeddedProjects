@@ -1,5 +1,5 @@
 /* This project is a review of the Embedded lab #3 LCD and Pushbutton Counter
-  Note: This project wasnt linking the header files for the longest time
+  Note: This project wasnt linking the MSOE header files for the longest time
   I finally got them to all link and not really sure what the issue was
 
   Interface the LCD panel 16x2 and a pair of pushbuttons to the Arduino Uno
@@ -29,6 +29,7 @@
   PC0-button1
   PC1-button2
 
+  A wiring diagram is included in the file structure.
 */
 
 #include <avr/io.h>
@@ -44,7 +45,7 @@
 #define PUSHBUTTON_1_AND_2 1
 #define PUSHBUTTON_RESET 4
 
-int main (void )
+int main (void)
 {
   // Set up digital inputs
   DDRC &= (~(1<<PORTC0)) & (~(1<<PORTC1));
@@ -93,7 +94,12 @@ int main (void )
       button2resetflag = 1;
     }
 
-    //Run the Printing of on the LCD
+    if(buttonScan == PUSHBUTTON_1_AND_2)
+    {
+      count = 0;
+    }
+
+    //Run the printing of on the LCD
     //Only update LCD if the count changed
     if(mastercount != count)
     {
@@ -109,7 +115,6 @@ int main (void )
 
   return 0;
 }
-
 
 int pushbuttonScan(void)
 {
@@ -139,6 +144,7 @@ int pushbuttonScan(void)
   else if(button1and2Check == 0b00000011)
   {
       buttonPressStatus = PUSHBUTTON_RESET;
+      delay_ms(50); //For Debouncing of button
   }
 
   return buttonPressStatus;
