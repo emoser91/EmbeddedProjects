@@ -68,40 +68,40 @@ int main (void)
   while(1)
   {
     //Sensor 1
-    DDRB = DDRB | (1<<PORTB0);          //set pin for output
-    PORTB = PORTB | (1<<PORTB0);        //write a 1 to pin
+    DDRB  |= (1<<PORTB0);          //set pin for output
+    PORTB |= (1<<PORTB0);        //write a 1 to pin
     delay_us(10);                       //delay
-    DDRB = DDRB & (~(1<<PORTB0));       //set pin to input
+    DDRB &= (~(1<<PORTB0));       //set pin to input
     delay_ms(1);                        //delay
     bool sensor1data = PINB & (1 << 0); //mask and read input
     lcd_goto_xy(0,1);
     lcd_printf("%d",sensor1data);
 
     //Sensor 2
-    DDRB = DDRB | (1<<PORTB1);
-    PORTB = PORTB | (1<<PORTB1);
+    DDRB |= (1<<PORTB1);
+    PORTB |= (1<<PORTB1);
     delay_us(10);
-    DDRB = DDRB & (~(1<<PORTB1));
+    DDRB &= (~(1<<PORTB1));
     delay_ms(1);
     bool sensor2data = PINB & (1 << 1); //force to bool otherwise value is 0010 = 2
     lcd_goto_xy(1,1);
     lcd_printf("%d",sensor2data);
 
     //Sensor 3
-    DDRB = DDRB | (1<<PORTB2);
-    PORTB = PORTB | (1<<PORTB2);
+    DDRB |= (1<<PORTB2);
+    PORTB |= (1<<PORTB2);
     delay_us(10);
-    DDRB = DDRB & (~(1<<PORTB2));
+    DDRB &= (~(1<<PORTB2));
     delay_ms(1);
     bool sensor3data = PINB & (1 << 2);
     lcd_goto_xy(2,1);
     lcd_printf("%d",sensor3data);
 
     // //Sensor 4
-    DDRB = DDRB | (1<<PORTB3);
-    PORTB = PORTB | (1<<PORTB3);
+    DDRB |= (1<<PORTB3);
+    PORTB |= (1<<PORTB3);
     delay_us(10);
-    DDRB = DDRB & (~(1<<PORTB3));
+    DDRB &= (~(1<<PORTB3));
     delay_ms(1);
     bool sensor4data = PINB & (1 << 3);
     lcd_goto_xy(3,1);
