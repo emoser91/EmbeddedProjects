@@ -143,8 +143,8 @@ int pushbuttonScan(void)
 
   else if(button1and2Check == 0b00000011)
   {
-      buttonPressStatus = PUSHBUTTON_RESET;
-      delay_ms(50); //For Debouncing of button
+    buttonPressStatus = PUSHBUTTON_RESET;
+    delay_ms(50); //For Debouncing of button
   }
 
   return buttonPressStatus;
