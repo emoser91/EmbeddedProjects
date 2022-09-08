@@ -28,10 +28,7 @@
   Right Leg of Pot: through 1k ohm resistor to 5v
   Middle Leg of Pot: ADCO/A0 Pin of Micro
 
-  LCD Input/Output is the same as in Lab3
-
-  Inputs:
-  *PC0 (button1), PC1(button2): Both buttons are then wired to ground
+  LCD Output is the same as in Lab3
 
   Outputs: 
   LCD 16x2 Wiring:

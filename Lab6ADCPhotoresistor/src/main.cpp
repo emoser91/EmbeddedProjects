@@ -30,7 +30,7 @@
       1     0      0     0    1      1      1      1
 
   Inputs:
-  *PC0 (Photoresistor): 
+  *ADC0/A0/PC0 Pin of Micro (Photoresistor): 
   A 3.3k ohm resistor is wired from 5V to the Photoresistor and the other leg of the photoresistor is grounded.
   The sensor data is taken from the middle between the 3.3k ohm resistor and the photoresistor.
   See Wiring Diagram for futher clarification.
@@ -38,10 +38,7 @@
   Outputs:
   *PC2 (LED1), PC3 (LED2), PC4 (LED3), PC5 (LED4): All LEDs run through their own 300ohm resistor then to ground.
 
-  LCD Input/Output is the same as in Lab3
-
-  Inputs:
-  *PC0 (button1), PC1(button2): Both buttons are then wired to ground
+  LCD Output is the same as in Lab3
 
   Outputs: 
   LCD 16x2 Wiring:

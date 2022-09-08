@@ -37,10 +37,7 @@
   LED Wiring
   PD0/Digital2 Pin of Micro to the LED through a 300ohm resistor then to ground.
 
-  LCD Input/Output is the same as in Lab3
-
-  Inputs:
-  *PC0 (button1), PC1(button2): Both buttons are then wired to ground
+  LCD Output is the same as in Lab3
 
   Outputs: 
   LCD 16x2 Wiring:
