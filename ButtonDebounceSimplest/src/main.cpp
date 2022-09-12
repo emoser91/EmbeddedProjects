@@ -2,6 +2,9 @@
 
 Only Works for a Single Button
 
+Solution comes from https://www.e-tinkers.com/2021/05/the-simplest-button-debounce-solution/
+Which is technically from http://www.ganssle.com/debouncing-pt2.htm
+
 When the button is pressed, the button pull the GPIO pin to ground and produce a 0. The value is added into the state through OR | operator, 
 and shift up through shift << operator each time the button pin is read, the 0xfe00 is a bit mask that mask-out the higher byte, and sort of 
 means that we only care if the lower byte produce a consecutive stream of 0.
