@@ -24,9 +24,9 @@
   (COM0A1)(COM0A0)(COM0B1)(COM0B0)(-)(-)(WGM01)(WGM00)
      0        1       0      0     0  0    1      0
 
-   TCCR0B
-   (FOC0A)(FOC0B)(-)(-)(WGM02)(CS02)(CS01)(CS00)
-      0     0     0  0    1      1     0     0
+  TCCR0B
+  (FOC0A)(FOC0B)(-)(-)(WGM02)(CS02)(CS01)(CS00)
+     0     0     0  0    1      1     0     0
 
   Wiring
   Inputs:
@@ -48,12 +48,56 @@
 #define PUSHBUTTON_1_AND_2 1
 #define PUSHBUTTON_RESET 4
 
+/* Simple Solution to the Problem */
+// int main (void)
+// {
+//   // Set up digital inputs
+//   DDRC &= (~(1<<PORTC0)) & (~(1<<PORTC1));
+//   PORTC |= (1<<PORTC0) | (1<<PORTC1); //Setting pull up resistors
+//   DDRD|=(1<<PORTD6); //Wave output for OC0A
+
+// 	int buttonScan;
+
+//   //CTC Wave Resister Setup
+// 	TCCR0A=(1<<COM0A0)|(1<<WGM01); //Toggle on compare match and ctc mode
+//   TCCR0B=(1<<CS02); //256 prescaler
+
+//   while(1)
+//   {
+//     buttonScan = PINC & (0b00000011); //Checking status of buttons
+
+//     if(buttonScan == 0b00000001) //Button 1 Pressed
+//     {
+//       OCR0A = 94; //392.00Hz
+//     }
+
+//     if(buttonScan == 0b00000010) //Button 2 Pressed
+//     {
+//       OCR0A = 79; //329.63Hz
+//     }
+
+//     if(buttonScan == 0b00000000) //Button 1 and 2 Pressed
+//     {
+//       OCR0A = 59; //523.25Hz
+//     }
+
+//     if(buttonScan == 0b00000011) //No Buttons Pressed
+//     {
+//       OCR0A = 118; //261.63Hz
+//     }
+//   }
+
+//   return 0;
+// }
+
+
+/* More Complicated Solution */
 int main (void)
 {
   // Set up digital inputs
   DDRC &= (~(1<<PORTC0)) & (~(1<<PORTC1));
   PORTC |= (1<<PORTC0) | (1<<PORTC1); //Setting pull up resistors
-  DDRD|=(1<<PORTD6);//Wave output for OC0A
+  DDRD|=(1<<PORTD6); //Wave output for OC0A
 
   int button1resetflag = 0;
   int button2resetflag = 0;
@@ -63,43 +107,38 @@ int main (void)
 	int pushbuttonScan(void);
 
   //CTC Wave Resister Setup
-	TCCR0A=(1<<COM0A0)|(1<<WGM01);//Toggle on compare match and ctc mode
-  TCCR0B=(1<<CS02);//256 prescaler
+	TCCR0A=(1<<COM0A0)|(1<<WGM01); //Toggle on compare match and ctc mode
+  TCCR0B=(1<<CS02); //256 prescaler
 
   while(1)
   {
     //The flagging system was over engineering, but it makes it so statement is only ran once with a button push
     //Holding the button will not continue to execute the statement just as in Lab3 Code. 
 
-    buttonScan = pushbuttonScan();//Checking status of buttons
+    buttonScan = pushbuttonScan(); //Checking status of buttons
 
-    if((buttonScan == PUSHBUTTON_1) & (!button1resetflag))//Button1 Pressed
+    if((buttonScan == PUSHBUTTON_1) & (!button1resetflag)) //Button 1 Pressed
     {
-      OCR0A = 94;
-
+      OCR0A = 94; //392.00Hz
       button1resetflag = 1;
     }
 
-    if((buttonScan == PUSHBUTTON_2) & (!button2resetflag))//Button 2 Pressed
+    if((buttonScan == PUSHBUTTON_2) & (!button2resetflag)) //Button 2 Pressed
     {
-      OCR0A = 79;
-
+      OCR0A = 79; //329.63Hz
       button2resetflag = 1;
     }
 
-    if((buttonScan == PUSHBUTTON_1_AND_2) & (!button1resetflag) & (!button2resetflag))//Button 1 and 2 Pressed
+    if((buttonScan == PUSHBUTTON_1_AND_2) & (!button1resetflag) & (!button2resetflag)) //Button 1 and 2 Pressed
     {
-      OCR0A = 59;
-
+      OCR0A = 59; //523.25Hz
       button1resetflag = 1;
       button2resetflag = 1;
     }
 
-    //Current issue is that you have to exactly press the two at the same time or it will go to one of the single button options
     if(buttonScan == PUSHBUTTON_RESET)//No Buttons Pressed
     {
-      OCR0A = 118;
-
+      OCR0A = 118; //261.63Hz
       //Could have individual resets instead but it shouldnt matter
       button1resetflag = 0;
       button2resetflag = 0;
@@ -119,10 +158,12 @@ int pushbuttonScan(void)
   uint8_t button1Check = PINC & 0b00000001;
   uint8_t button2Check = PINC & 0b00000010;
   
+  //Delay solves issue that you have to exactly press the two at the same time or it will go to one of the single button options
+  delay_ms(200);
+
   if(button1and2Check == 0b00000000)
   {
     buttonPressStatus = PUSHBUTTON_1_AND_2;
-    delay_ms(200);
   }
 
   else if(button1Check == 0b00000000)
