@@ -66,7 +66,7 @@ int main (void)
 	float volts;
 
 	ADMUX |= (1<<REFS0); //Selecting Voltage Reference of AVcc = 5v
-	ADCSRA |= (1<<ADEN) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0); //ADEN = ADC Enable, ADIE = ADC Interrupt Enable, ADPS2:ADPS0 = Prescalar
+	ADCSRA |= (1<<ADEN) | (1<<ADIE) | (1<<ADPS2) | (1<<ADPS1) | (1<<ADPS0); //ADEN = ADC Enable, ADIE = ADC Interrupt Enable, ADPS2:ADPS0 = Prescalar=128
 	PORTC &= (~(1<<PORTC0)); //turning off pull-up resistor
 
   sei(); //turning on global interrupts

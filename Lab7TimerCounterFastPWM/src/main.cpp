@@ -55,7 +55,7 @@ int main (void)
   //Fast PWM Resister Setup
   TCCR0A = (1<<COM0B1) | (1<<WGM01) | (1<<WGM00);//fast pwm mode top=OC0A and clear OC0B on compare match set OC0B at Bottom
 	TCCR0B = (1<<CS01) | (1<<CS00) | (1<<WGM02);//prescale 64
-	OCR0A = 124;//top = 2k Hz
+	OCR0A = 124;//top = 2k Hz (Max value is 8 bits or 255)
 
   while(1)
   {

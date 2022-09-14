@@ -97,7 +97,7 @@ int main (void)
   // Set up digital inputs
   DDRC &= (~(1<<PORTC0)) & (~(1<<PORTC1));
   PORTC |= (1<<PORTC0) | (1<<PORTC1); //Setting pull up resistors
-  DDRD|=(1<<PORTD6); //Wave output for OC0A
+  DDRD |= (1<<PORTD6); //Wave output for OC0A
 
   int button1resetflag = 0;
   int button2resetflag = 0;
@@ -107,8 +107,8 @@ int main (void)
 	int pushbuttonScan(void);
 
   //CTC Wave Resister Setup
-	TCCR0A=(1<<COM0A0)|(1<<WGM01); //Toggle on compare match and ctc mode
-  TCCR0B=(1<<CS02); //256 prescaler
+	TCCR0A = (1<<COM0A0) | (1<<WGM01); //Toggle on compare match and ctc mode
+  TCCR0B = (1<<CS02); //256 prescaler
 
   while(1)
   {
