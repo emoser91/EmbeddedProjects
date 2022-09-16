@@ -6,6 +6,16 @@ I had to close and reopen the program for it to finally be happy.
 
 It wouldnt accept the include files for the longest time as well as
 programmed garbage to the LCD until it finally started working. 
+
+Outputs: 
+  LCD 16x2 Wiring:
+  rs-PB5
+  R/w-GND
+  E-PB4
+  DB 4:7-PD4:7
+  Vss-GND
+  Vee-pot-(5v,GND)
+  Vdd-5v
 */
 
 #include <avr/io.h>

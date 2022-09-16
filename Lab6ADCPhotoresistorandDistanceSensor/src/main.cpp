@@ -64,8 +64,6 @@
   Vss-GND
   Vee-pot-(5v,GND)
   Vdd-5v
-  PC0-button1
-  PC1-button2
 
   A wiring diagram is included in the file structure.
   Small Modifications to wiring diagram in Lab6.

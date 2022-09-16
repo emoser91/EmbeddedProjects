@@ -1,4 +1,4 @@
-/* This project is a review of the Embedded lab #2 Bouncing LEDS 
+/* This project is a review of the Embedded lab #2 Bouncing LEDS
   Interface pushbuttons and LEDs to the microcontroller Arduino Uno to control 
   the LED illumination in a manner which minics the Knight Rider pattern.
 
