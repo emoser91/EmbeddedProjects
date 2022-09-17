@@ -120,6 +120,11 @@ int main (void)
 	//ICES1 is 0 by default for falling edge trigger
 	TIMSK1 |= (1<<ICIE1);//input compare interrupt enable
 
+	//ALTERNATIVE MOTOR SETUP
+	//I set up the motors with phase correct pwm in EE2030 for motor control
+	//TCCR0A=(1<<COM0B1)|(1<<COM0A1)|(1<<WGM00);//Phase correct PWM mode top=0xFF(255)
+	//TCCR0B=(1<<CS01)|(1<<CS00);//N=64 =490.2Hz   
+
 	sei();//turning on global interrupts
 	lcd_init();lcd_clear();lcd_home();//LCD enable
 

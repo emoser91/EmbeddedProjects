@@ -34,6 +34,7 @@
 #include <Arduino.h>
 
 // Required if built in Eclipse
+// from WinAVR Folder
 // #include <avr/io.h>
 // #include <inttypes.h>
 
