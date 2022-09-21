@@ -34,120 +34,15 @@
   A wiring diagram is included in the file structure.
 */
 
-#include <math.h> //Required for float Math
-#include <avr/io.h>
+#ifndef _LCD_C
+#define _LCD_C
+
+#include <math.h>
 #include <inttypes.h>
-#include "MSOE/delay.c"
-#include <MSOE/bit.c>
-//#include <MSOE/lcd.c> //Trying to replicate my own version of this in the project
+#include <avr/io.h>				// is needed for IO port declarations
+#include <avr/interrupt.h>
 #include <stdlib.h>
-
-#include <Arduino.h>
-
-//Everything before int main can be moved into a .h file and then #included
-#define SetBit(a, b) (a) |= (1 << (b))
-#define ClearBit(a, b) (a) &= ~(1 << (b))
-
-#define LCD_CLR             0x01	// clear display
-#define LCD_HOME			0x02	// return to home position
-#define LCD_CURSOR_RIGHT	0x14	// moves cursor right
-#define LCD_CURSOR_LEFT		0x10	// moves cursor left
-#define LCD_SHIFT_RIGHT		0x1C	// shifts display right
-#define LCD_SHIFT_LEFT		0x18	// shifts display left
-
-#define LCD_CGRAM           6      // set CG RAM address
-#define LCD_DDRAM           7      // set DD RAM address
-
-// DDRAM mapping
-#define LCD_LINE0_DDRAMADDR		0x00	// on 2x16 0x00-0x0F
-#define LCD_LINE1_DDRAMADDR		0x40	// on 2x16 0x40-0x4F
-
-// Function prototypes
-void LcdInit(void);
-void LcdPortInit(void);
-void LcdDataWrite(uint8_t);
-void LcdCommandWrite(uint8_t);
-void LcdClear(void);
-void LcdHome(void);
-void LcdPrintChar(uint8_t);
-void LcdPrintString(const char *);
-void LcdPrintUint8(uint8_t);
-void LcdPrintInt8(int8_t);
-void LcdPrintUint16(uint16_t);
-void LcdPrintInt16(int16_t);
-void LcdPrintHex(uint8_t);
-void LcdPrintFloat(float);
-void LcdPrintf(char *fmt, ...);
-void LcdGoToXY(uint8_t, uint8_t);
-
-
-int main (void)
-{
-	LcdInit();
-	LcdClear();
-	LcdHome();
-  
-	// LcdDataWrite(0x48); //0x48=Ascii letter "H"
-	// LcdDataWrite(0x49); //0x48=Ascii letter "I"
-
-	// LcdPrintChar('H');
-	// LcdPrintChar('I');
-
-	// LcdPrintString("Questing");
-
-	// uint8_t num = 255;
-	// LcdPrintUint8(num);
-
-	// int8_t negNum = -128;
-	// LcdPrintInt8(negNum);
-
-	// uint16_t numlarge = 65535;
-	// LcdPrintUint16(numlarge);
-
-	// int16_t negNumlarge = -32768;
-	// LcdPrintInt16(negNumlarge);
-
-	// LcdPrintHex(0x0A);
-	// LcdPrintHex(0xFF);
-
-	// float fNum = 3.14159;
-	// LcdPrintFloat(fNum);
-
-	// LcdPrintf("Testing");
-
-	// int16_t testInteger = -15;
-	// LcdPrintf("Number = %d", testInteger);
-	// LcdPrintf("Number = %i", testInteger);
-
-	// char testChar = 'A';
-	// LcdPrintf("Char = %c", testChar);
-
-	// float testFloat = 3.14159;
-	// LcdPrintf("FLT = %f", testFloat);
-
-	// char testString[] = "testing";
-	// LcdPrintf("String = %s", testString);
-
-	// uint16_t testOctal = 012; //Note that Octal is preceded with a 0
-	// LcdPrintf("Number = %o", testOctal);
-
-	// uint8_t testHex = 0xFF;
-	// LcdPrintf("Number = %x", testHex);
-
-	// uint16_t testUint = 65;
-	// LcdPrintf("Number = %u", testUint);
-
-	// LcdPrintf("Line 0");
-	// LcdGoToXY(0,1);
-	// LcdPrintf("Line 1");
-
-	while(1)
-	{
-	//Do nothing
-	}
-
-	return 0;
-}
+#include "lcd.h"
 
 void LcdInit(void)
 {
@@ -645,3 +540,6 @@ void LcdGoToXY(uint8_t x, uint8_t y)
 	//Set data address
 	LcdCommandWrite(1<<LCD_DDRAM | DDRAMAddr);
 }
+
+
+#endif
