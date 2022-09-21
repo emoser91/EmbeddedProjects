@@ -91,7 +91,7 @@ int main (void)
 	lcd_clear();
 	lcd_home();
 
-  DDRD = DDRD|(1<<PORTD2);//led blue for Distance Sensor
+  DDRD |= (1<<PORTD2);//led blue for Distance Sensor
   DDRC |= (1<<PORTC2) | (1<<PORTC3) | (1<<PORTC4) | (1<<PORTC5); //4 LEDs for Photoresistor
 
 	ADMUX |= (1<<REFS0); //Selecting Voltage Reference of AVcc = 5v
