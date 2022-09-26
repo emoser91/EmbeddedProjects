@@ -35,7 +35,9 @@
    Check to see what COM PORT the Arduino is conencted to under Device Manager in Windows
 
    USING AN EXERNAL TTL(USART) to USB DEVICE
-   You can also use an external ttl to usb device to communicate with the arduino
+   You can also use an external ttl to usb device to communicate with the arduino.
+   The Arduino just has one USART subsystem so when you are watching the USB line powering the Arduino, 
+   you will recieve the same data as using the TX/RX lines with an external device.
 
    Wiring:
    *Make sure to cross TX/RX lines
