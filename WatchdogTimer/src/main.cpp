@@ -69,7 +69,7 @@ void WDT_Init(void)
   //set up WDT interrupt
   WDTCSR = (1<<WDCE) | (1<<WDE);
 
-  //Start watchdog timer with 4s prescaller
+  //Start watchdog timer with interrupt and reset mode and 4s prescaller
   WDTCSR = (1<<WDIE) | (1<<WDE) | (1<<WDP3);
 
   //Enable global interrupts
@@ -110,4 +110,6 @@ int main (void)
 
       //  wdt_reset(); //Uncomment to keep "feeding the dog" so the watchdog timer event is not triggered
     }
+
+    return 0;
 }
