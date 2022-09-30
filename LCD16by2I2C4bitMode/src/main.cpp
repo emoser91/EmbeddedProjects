@@ -213,22 +213,24 @@ void i2c_init(void)
 }
 
 /* START I2C Routine */
-unsigned char i2c_transmit(unsigned char type) {
+unsigned char i2c_transmit(unsigned char type) 
+{
 	switch(type) {
 		//Each of the following cases are clearly outlined in the datasheet
 		//Datasheet outlines what bits to set for specific cases
 		case I2C_START:    // Send Start Condition
-		TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN); //TWCR: TWI Control Register
-		break;
+			TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN); //TWCR: TWI Control Register
+			break;
 		case I2C_DATA:     // Send Data with No-Acknowledge
-		TWCR = (1 << TWINT) | (1 << TWEN);
-		break;
+			TWCR = (1 << TWINT) | (1 << TWEN);
+			break;
 		case I2C_DATA_ACK: // Send Data with Acknowledge
-		TWCR = (1 << TWEA) | (1 << TWINT) | (1 << TWEN);
-		break;
+			TWCR = (1 << TWEA) | (1 << TWINT) | (1 << TWEN);
+			break;
 		case I2C_STOP:     // Send Stop Condition
-	TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
-	return 0;
+			TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
+
+		return 0;
   }
 
   // Wait for TWINT flag set on Register TWCR
@@ -300,7 +302,7 @@ char i2c_write(char data)
 
   r_val = 0;
 
-i2c_quit:
+	i2c_quit:
   return r_val;
 }
 
@@ -331,7 +333,7 @@ char i2c_read(char *data,char ack_type)
 
   r_val = 0;
 
-i2c_quit:
+  i2c_quit:
   return r_val;
 }
 
