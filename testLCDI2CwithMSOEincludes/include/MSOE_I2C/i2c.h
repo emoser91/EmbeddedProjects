@@ -9,7 +9,7 @@
 
 #define MAX_TRIES 50
 
-#define MCP23008_ID    0x40  // MCP23008 Device Identifier
+#define MCP23008_ID    0x40  // MCP23008 Device Identifier 0x40
 #define MCP23008_ADDR  0x00  // MCP23008 Device Address
 
 

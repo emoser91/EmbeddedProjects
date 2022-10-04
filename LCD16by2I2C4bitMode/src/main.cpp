@@ -14,8 +14,8 @@
   Goal: To print out Hello World on the LCD screen
 
   LCD 16x2 with LCD Backpack Wiring:
-  DAT(Data) to SDA/PC4 Pin
-  CLK(Clock) to SCL/PB5 Pin
+  DAT(Data) to SDA/PC4/A4 Pin
+  CLK(Clock) to SCL/PB5/A5 Pin
   5v to 5v Pin
   GND to GND Pin
 
@@ -70,6 +70,9 @@
 #define NACK 0
 
 #define DATASIZE 32
+
+#define sbi(a, b) (a) |= (1 << (b))
+#define cbi(a, b) (a) &= ~(1 << (b))
 
 //TWI Function Prototypes
 unsigned char  i2c_transmit(unsigned char type);
@@ -134,8 +137,8 @@ int main (void)
 	LcdClear();
 	LcdHome();
   
-	// LcdDataWrite(0x48); //0x48=Ascii letter "H"
-	// LcdDataWrite(0x49); //0x48=Ascii letter "I"
+	LcdDataWrite(0x48); //0x48=Ascii letter "H"
+	LcdDataWrite(0x49); //0x48=Ascii letter "I"
 
 	// LcdPrintChar('H');
 	// LcdPrintChar('I');
@@ -386,9 +389,8 @@ unsigned char Read_MCP23008(unsigned char reg_addr)
 //////////////////////////////////
 void LcdInit(void)
 {
-	// i2c_init();                // init i2c/twi subsystem
 	delay_ms(100);             // wait 100ms for the LCD to come out of reset
-	LcdPortInit();             // initalize the port pins
+	LcdPortInit();             // initalize the port pins and init i2c/twi subsystem
 	LcdCommandWrite(0x33);	   // set DDRAM address: init LCD to 4bit interface
 	LcdCommandWrite(0x32);	   // set DDRAM address: init LCD to 4bit interface
 	LcdCommandWrite(0x28);	   // set DDRAM address: set two-line display
@@ -408,42 +410,67 @@ void LcdPortInit(void)
 void LcdCommandWrite(uint8_t cmd)
 {
 	char temp_reg;
-	temp_reg = Read_MCP23008(OLAT);        //Read MCP23008 Output Latch Register
-	                                       //The OLAT register provides access to the output
-                                           //latches. A read from this register results in a read of the
-                                           //OLAT and not the port itself. A write to this register
-                                           //modifies the output latches that modifies the pins
-                                           //configured as outputs.
+	/* Read MCP23008 Output Latch Register. The OLAT register provides access to the output latches. 
+	A read from this register results in a read of the OLAT and not the port itself. 
+	A write to this register modifies the output latches that modifies the pins configured as outputs. */
+	temp_reg = Read_MCP23008(OLAT);        				//Read MCP23008 Output Latch Register
 
-	temp_reg &= ~(1 << (LCD_CTRL_RS));      //Lower RS bit for Commands
-	Write_MCP23008(GPIO,temp_reg);          //Writing data over I2C to the LCD
-	delay_ms(1);                            //Wait for the data to be processed on the LCD side
+	/* Lower RS to send commands */
+	temp_reg &= ~(1 << (LCD_CTRL_RS));					//Raise RS bit for Data
+	Write_MCP23008(GPIO,temp_reg);
+	delay_ms(1);
 
-	temp_reg |= (1 << (LCD_CTRL_E));                    //Raise Enable bit
-	Write_MCP23008(GPIO,temp_reg);                      //Writing data over I2C to the LCD
-	temp_reg = (temp_reg & 0x87) | ((cmd >> 1) & 0x78); //Mask for the Data bits and set to upper nibble (4bits)
+	/* Write Enable High, Write Data first half of 8bit data, Write Enable Low */
+	temp_reg |= (1 << (LCD_CTRL_E));					//Raise Enable bit
 	Write_MCP23008(GPIO,temp_reg);
-	temp_reg &= ~(1 << (LCD_CTRL_E));                   //Lower Enable bit
+
+	temp_reg=(temp_reg&0x87)|((cmd>>1)&0x78);		 	//Mask for the Data bits and set to upper nibble (4bits)
 	Write_MCP23008(GPIO,temp_reg);
-	delay_ms(2);
+
+	temp_reg &= ~(1 << (LCD_CTRL_E));					//Lower Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+	delay_ms(2);										//Wait 2ms so display uploads data
+
+	/* Write Enable High, Write Data second half of 8bit data, Write Enable Low */
+	temp_reg |= (1 << (LCD_CTRL_E));					//Raise Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+
+	temp_reg=(temp_reg & 0x87) | ((cmd<<3) & 0x78);		//Mask for the Data bits and set to lower nibble (4bits)
+	Write_MCP23008(GPIO,temp_reg);
+
+	temp_reg &= ~(1 << (LCD_CTRL_E));					//Lower Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+	delay_ms(2);										//Wait 2ms so display uploads data
 }
 
 void LcdDataWrite(uint8_t data)
 {
 	char temp_reg;
-	temp_reg = Read_MCP23008(OLAT);        //Read MCP23008 Output Latch Register
 
-	temp_reg |= (1 << (LCD_CTRL_RS));      //Raise RS bit for Commands
-	Write_MCP23008(GPIO,temp_reg);         //Writing data over I2C to the LCD
-	delay_ms(1);                           //Wait for the data to be processed on the LCD side
+	temp_reg=Read_MCP23008(OLAT);						//Read MCP23008 Output Latch Register
 
-	temp_reg |= (1 << (LCD_CTRL_E));                     //Raise Enable bit
-	Write_MCP23008(GPIO,temp_reg);                       //Writing data over I2C to the LCD
-	temp_reg = (temp_reg & 0x87) | ((data >> 3) & 0x78); //Mask for the Data bits and set to upper nibble (4bits)
+	/* Raise RS bit to send Data */
+	temp_reg |= (1 << (LCD_CTRL_RS));					//Raise RS bit for Data
 	Write_MCP23008(GPIO,temp_reg);
-	temp_reg &= ~(1 << (LCD_CTRL_E));                    //Lower Enable bit
+	delay_ms(1);
+
+	/* Write Enable High, Write Data first half of 8bit data, Write Enable Low */
+	temp_reg |= (1 << (LCD_CTRL_E));					//Raise Enable bit
 	Write_MCP23008(GPIO,temp_reg);
-	delay_ms(2);
+	temp_reg=(temp_reg&0x87)|((data>>1)&0x78);		 	//Mask for the Data bits and set to upper nibble (4bits)
+	Write_MCP23008(GPIO,temp_reg);
+	temp_reg &= ~(1 << (LCD_CTRL_E));					//Lower Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+	delay_ms(1);										//Wait 1ms so display uploads data
+
+	/* Write Enable High, Write Data second half of 8bit data, Write Enable Low */
+	temp_reg |= (1 << (LCD_CTRL_E));					//Raise Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+	temp_reg=(temp_reg & 0x87) | ((data<<3) & 0x78);	// send lower nibble
+	Write_MCP23008(GPIO,temp_reg);
+	temp_reg &= ~(1 << (LCD_CTRL_E));					//Lower Enable bit
+	Write_MCP23008(GPIO,temp_reg);
+	delay_ms(1);										//Wait 1ms so display uploads data
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////

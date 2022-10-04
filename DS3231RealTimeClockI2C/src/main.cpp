@@ -91,14 +91,17 @@ int main (void)
   uint8_t readMinutes;
   uint8_t readHours;
 
-  Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
+  // Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
 
-  //Print Seconds for Debugging
-  lcd_printf("%d",readSeconds);
+  // //Print Seconds for Debugging
+  // lcd_printf("%d",readSeconds);
 
 	while(1)
 	{
-	  //Do nothing
+    Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
+
+    //Print Seconds for Debugging
+    lcd_printf("%d",readSeconds);
 	}
 
 	return 0;
