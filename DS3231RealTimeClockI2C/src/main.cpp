@@ -46,7 +46,7 @@ void Read_Date_DS3231(uint8_t *day, uint8_t *month, uint8_t *year);
 #define ClearBit(a, b) (a) &= ~(1 << (b))
 
 //DS3231 SPI/I2C LCD backpack driver
-#define DS3231_ID    0x68  // DS3231 Device Identifier
+#define DS3231_ID    0x68  // DS3231 Device Identifier 68
 #define DS3231_ADDR  0x00  // DS3231 Device Address
 
 //DS3231 Register Addresses
@@ -77,6 +77,8 @@ int main (void)
 	lcd_clear();
 	lcd_home();
   
+  lcd_printf("X");
+  // lcd_printf("Real Time Clock");
   /* Write Current Time */
   /* You only need to set the time once, it will stay set even after resets */
   /* You can run the code once to set and then reprogram Arduino with this section commented out */
@@ -84,7 +86,7 @@ int main (void)
   uint8_t setMinutes = 0x00;
   uint8_t setHours = 0x00;
 
-  Set_Time_DS3231(setSeconds, setMinutes, setHours);
+  // Set_Time_DS3231(setSeconds, setMinutes, setHours);
 
   /* Read Current Time */
   uint8_t readSeconds;
@@ -93,15 +95,21 @@ int main (void)
 
   // Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
 
-  // //Print Seconds for Debugging
-  // lcd_printf("%d",readSeconds);
+  //Write Seconds
+	Write_DS3231(DS3231_SECONDS,setSeconds);
+	delay_ms(1); //Wait for data to be processed
+
+  // readSeconds = Read_DS3231(DS3231_SECONDS);
 
 	while(1)
 	{
-    Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
+    // Read_Time_DS3231(&readSeconds, &readMinutes, &readHours);
+
+    // readSeconds = Read_DS3231(DS3231_SECONDS);
 
     //Print Seconds for Debugging
-    lcd_printf("%d",readSeconds);
+    lcd_goto_xy(0,1);
+    lcd_printf("s: %d",setSeconds);
 	}
 
 	return 0;
@@ -124,31 +132,33 @@ void i2c_init(void)
 }
 
 /* START I2C Routine */
-unsigned char i2c_transmit(unsigned char type) {
-	switch(type) 
-  {
+unsigned char i2c_transmit(unsigned char type) 
+{
+	switch(type) {
 		//Each of the following cases are clearly outlined in the datasheet
 		//Datasheet outlines what bits to set for specific cases
 		case I2C_START:    // Send Start Condition
-		  TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN); //TWCR: TWI Control Register
-		  break;
+			TWCR = (1 << TWINT) | (1 << TWSTA) | (1 << TWEN); //TWCR: TWI Control Register
+			break;
 		case I2C_DATA:     // Send Data with No-Acknowledge
-		  TWCR = (1 << TWINT) | (1 << TWEN);
-		  break;
+			TWCR = (1 << TWINT) | (1 << TWEN);
+			break;
 		case I2C_DATA_ACK: // Send Data with Acknowledge
-		  TWCR = (1 << TWEA) | (1 << TWINT) | (1 << TWEN);
-		  break;
+			TWCR = (1 << TWEA) | (1 << TWINT) | (1 << TWEN);
+			break;
 		case I2C_STOP:     // Send Stop Condition
-	    TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
+			TWCR = (1 << TWINT) | (1 << TWEN) | (1 << TWSTO);
 
-	  return 0;
+		return 0;
   }
 
+lcd_printf("B");
   // Wait for TWINT flag set on Register TWCR
   while (!(TWCR & (1 << TWINT)));
-
+ lcd_printf("C");
   // Return TWI Status Register, mask off the prescaler bits (TWPS1,TWPS0)
   return (TWSR & 0xF8);
+
 }
 
 // Function that sends start condition and slave address
@@ -165,17 +175,19 @@ char i2c_start(unsigned int dev_id, unsigned int dev_addr, unsigned char rw_type
 
 		// Transmit Start Condition
 		twi_status = i2c_transmit(I2C_START);
-
+  // lcd_print_uint8(twi_status);
 		// Check the TWI Status
 		if (twi_status == TW_MT_ARB_LOST) goto i2c_retry;
 		if ((twi_status != TW_START) && (twi_status != TW_REP_START)) goto i2c_quit; //bad status recieved
 
 		// Load slave address (SLA_W)
-		TWDR = (dev_id & 0xF0) | (dev_addr & 0x0E) | rw_type; //Filling TWI Data Register
+		// TWDR = (dev_id & 0xF0) | (dev_addr & 0x0E) | rw_type; //Filling TWI Data Register for LCD Backpack
+		TWDR = (dev_id & 0xFE) | rw_type; //Filling TWI Data Register
+
 
 		// Transmit I2C Data
 		twi_status = i2c_transmit(I2C_DATA);
-
+lcd_print_uint8(twi_status);
 		// Check the TWSR status
 		if ((twi_status == TW_MT_SLA_NACK) || (twi_status == TW_MT_ARB_LOST)) goto i2c_retry;
 		if (twi_status != TW_MT_SLA_ACK) goto i2c_quit; //bad status recieved
@@ -213,7 +225,7 @@ char i2c_write(char data)
 
   r_val = 0;
 
-  i2c_quit:
+	i2c_quit:
   return r_val;
 }
 
@@ -251,17 +263,20 @@ char i2c_read(char *data,char ack_type)
 // Write data to DS3231
 void Write_DS3231(unsigned char reg_addr,unsigned char data)
 {
+  int8_t test;
+  lcd_printf("A");
    // Start the I2C Write Transmission
-   i2c_start(DS3231_ID,DS3231_ADDR,TW_WRITE);
-
+   test = i2c_start(DS3231_ID,DS3231_ADDR,TW_WRITE);
+lcd_print_int8(test);
    // Sending the Register Address
    i2c_write(reg_addr);
-
+lcd_printf("2");
    // Write data to DS3231 Register
    i2c_write(data);
-
+lcd_printf("3");
    // Stop I2C Transmission
    i2c_stop();
+   lcd_printf("4");
 }
 
 // Read data from DS3231

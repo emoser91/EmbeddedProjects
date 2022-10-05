@@ -137,7 +137,7 @@ int main (void)
 	LcdClear();
 	LcdHome();
   
-	LcdDataWrite(0x48); //0x48=Ascii letter "H"
+	// LcdDataWrite(0x48); //0x48=Ascii letter "H"
 	LcdDataWrite(0x49); //0x48=Ascii letter "I"
 
 	// LcdPrintChar('H');
