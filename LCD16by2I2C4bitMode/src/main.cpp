@@ -137,7 +137,7 @@ int main (void)
 	LcdClear();
 	LcdHome();
   
-	// LcdDataWrite(0x48); //0x48=Ascii letter "H"
+	LcdDataWrite(0x48); //0x48=Ascii letter "H"
 	LcdDataWrite(0x49); //0x48=Ascii letter "I"
 
 	// LcdPrintChar('H');
@@ -403,7 +403,7 @@ void LcdInit(void)
 void LcdPortInit(void)
 {
 	i2c_init();                       //init i2c/twi subsystem
-	Write_MCP23008(IODIR,0b00000000); //Writing to LCD over I2C to clear out all IO Directory Address to 0s
+	Write_MCP23008(IODIR,0b00000000); //Writing to LCD over I2C to set all IO to output
 	Write_MCP23008(GPIO,0b00000000);  //Writing to LCD over I2C to clear out all GPIO Address to 0s
 }
 
@@ -412,7 +412,8 @@ void LcdCommandWrite(uint8_t cmd)
 	char temp_reg;
 	/* Read MCP23008 Output Latch Register. The OLAT register provides access to the output latches. 
 	A read from this register results in a read of the OLAT and not the port itself. 
-	A write to this register modifies the output latches that modifies the pins configured as outputs. */
+	A write to this register modifies the output latches that modifies the pins configured as outputs. 
+	It will still work if we skip this step*/
 	temp_reg = Read_MCP23008(OLAT);        				//Read MCP23008 Output Latch Register
 
 	/* Lower RS to send commands */
