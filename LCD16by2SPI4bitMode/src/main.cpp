@@ -1,4 +1,30 @@
-/* This project is to get a LCD 16 by 2 working in SPI communication
+/* 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	THIS PROJECT DOES NOT WORK AS OF YET!!!!
+	I guess the Adafruit I2C/SPI Backpack doesnt use SPI
+	The Adafruit LiquidCrystal Library doesnt use SPI Hardware either
+	The Library does work to output a Hello World and can be found in this folder
+
+	The Adafruit uses a 74HC595 serial to parallel shift register chip to perform
+	what is calls "SPI"
+
+	The Adafruit Library just shift out bits directly.
+	The 74HC595 uses a 3 wire shift register interface, NOT SPI
+
+	There might be a way to modify SPI to work as a 3 wire but I 
+	am not sure. 
+
+	The following code is SPI fully setup to transmit but it doesnt seem to work
+	The LCD just acts as if it is getting junk data.
+
+	This code MIGHT work for a different SPI LCD Backpack if it uses true SPI
+	
+	Google atmega328p to 74HC595 shift register to figure out how to fix this project
+	Also look up shiftout functions because the Adafruit example uses it
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  This project is to get a LCD 16 by 2 working in SPI communication
   The LCD Backpack just has a spot you can solder over to enable SPI mode
   This will use the 4bit mode where we send half of a 8bit command, wait a 
   specific amount of time then send the other half of the 4 bits
@@ -65,11 +91,6 @@
 #define GPIO  0x09           // MCP23008 General Purpose I/O Register
 #define OLAT  0x0A           // MCP23008 Output Latch Register
 
-#define DATASIZE 32
-
-#define sbi(a, b) (a) |= (1 << (b))
-#define cbi(a, b) (a) &= ~(1 << (b))
-
 //SPI Function Prototypes
 void SPIMasterInit(void);
 void SPIMasterSend_Start(void);
@@ -82,9 +103,6 @@ unsigned char Read_MCP23008(unsigned char reg_addr);
 //////////////////////////////////
 /* SETUP FOR LCD */
 //////////////////////////////////
-#define SetBit(a, b) (a) |= (1 << (b))
-#define ClearBit(a, b) (a) &= ~(1 << (b))
-
 #define LCD_CLR             0x01	// clear display
 #define LCD_HOME			0x02	// return to home position
 #define LCD_CURSOR_RIGHT	0x14	// moves cursor right
@@ -99,8 +117,8 @@ unsigned char Read_MCP23008(unsigned char reg_addr);
 #define LCD_LINE0_DDRAMADDR		0x00	// on 2x16 0x00-0x0F
 #define LCD_LINE1_DDRAMADDR		0x40	// on 2x16 0x40-0x4F
 
-#define LCD_CTRL_RS		1	// bit 1 of I2C data word
-#define LCD_CTRL_E		2	// bit 2 of I2C data word
+#define LCD_CTRL_RS		1	// bit 1 of data word
+#define LCD_CTRL_E		2	// bit 2 of data word
 
 
 // Function prototypes
@@ -122,10 +140,10 @@ void LcdHome(void);
 #include <util/delay.h>
 
 #define SPI_DDR DDRB
-#define SS      PINB2 //Latch on LCD Backpack
-#define MOSI    PINB3 //DAT on LCD Backpack
-#define MISO    PINB4 
-#define SCK     PINB5 //CLK on LCD Backpack
+#define SS      PORTB2 //Latch on LCD Backpack
+#define MOSI    PORTB3 //DAT on LCD Backpack
+#define MISO    PORTB4 
+#define SCK     PORTB5 //CLK on LCD Backpack
 
 //MCP23008 SPI/I2C LCD backpack driver
 #define MCP23008_ID    0x40  // MCP23008 Device Identifier
@@ -142,25 +160,8 @@ void SPIMasterInit(void)
 	//set SS to high
 	PORTB |= (1<<SS);
 	//enable master SPI at clock rate Fck/16 = 1Mhz
-	// SPCR = (1<<SPE) | (1<<MSTR) | (1<<SPR0);
-
-  // enable SPI, set as master, and clock to fosc/128
-    SPCR = (1 << SPE) | (1 << MSTR) | (1 << SPR1) | (1 << SPR0);
+	SPCR = (1<<SPE) | (1<<MSTR) | (1<<SPR0);
 }
-
-//master send function
-//Just and example, not being used
-// void SPIMasterSend(uint8_t data)
-// {
-// 	//select slave
-// 	PORTB &= ~(1<<SS);
-// 	//send data
-// 	SPDR = data;
-// 	//wait for transmition complete
-// 	while (!(SPSR & (1<<SPIF)));
-// 	//SS to high
-// 	PORTB |= (1<<SS);
-// }
 
 void SPIMasterSend_Start(void)
 {
@@ -172,10 +173,9 @@ void SPIMasterSend_Address(uint8_t dev_id, uint8_t rw_type)
 {
   //Send the chip's address to the chip
   //SPI normally doesnt need this but datasheet wants it
-  // SPDR = (dev_id & 0xFE) | rw_type; //10000000
   /*The slave Address: 0 1 0 0 0 A1 A0 R/W, Write=0, Read=1*/
-  // SPDR = ((dev_id << 1) | (rw_type));
   SPDR = 0b01000000;
+
 	//wait for transmition complete
 	while (!(SPSR & (1<<SPIF)));
 }
@@ -199,18 +199,19 @@ void Write_MCP23008(unsigned char reg_addr,unsigned char data)
 {
   // Pull the Slave/Chip select LOW
   SPIMasterSend_Start();
-
+  delay_us(1);
   //Send the chip's address to the chip
   SPIMasterSend_Address(MCP23008_ID,WRITE);
-
+// delay_us(1);
   // Send the register to the chip
   SPIMasterSend_Data(reg_addr);
-
+// delay_us(1);
   // Send the value to the chip
   SPIMasterSend_Data(data);
-
+// delay_us(1);
   // Pull the Slave/Chip select HIGH
   SPIMasterSend_Stop();
+//   delay_us(1);
 }
 
 // Read data from MCP23008 SPI/I2C LCD backpack driver
@@ -271,7 +272,7 @@ void LcdCommandWrite(uint8_t cmd)
 	// temp_reg = Read_MCP23008(OLAT);        				//Read MCP23008 Output Latch Register
 
 	/* Lower RS to send commands */
-	temp_reg &= ~(1 << (LCD_CTRL_RS));					//Raise RS bit for Data
+	temp_reg &= ~(1 << (LCD_CTRL_RS));					//Lower RS bit for Data
 	Write_MCP23008(GPIO,temp_reg);
 	delay_ms(1);
 
@@ -348,14 +349,16 @@ void LcdHome(void)
 int main (void)
 {
 	LcdInit();
-	// LcdClear();
-	// LcdHome();
+	LcdClear();
+	LcdHome();
 
 	LcdDataWrite(0x48); //0x48=Ascii letter "H"
-	// LcdDataWrite(0x49); //0x48=Ascii letter "I"
+	LcdDataWrite(0x49); //0x48=Ascii letter "I"/
 
 	while(1)
 	{
+		LcdDataWrite(0x48);
+		delay_ms(100);
 	  //Do nothing
 	}
 

@@ -417,7 +417,7 @@ void LcdCommandWrite(uint8_t cmd)
 	temp_reg = Read_MCP23008(OLAT);        				//Read MCP23008 Output Latch Register
 
 	/* Lower RS to send commands */
-	temp_reg &= ~(1 << (LCD_CTRL_RS));					//Raise RS bit for Data
+	temp_reg &= ~(1 << (LCD_CTRL_RS));					//Lower RS bit for Data
 	Write_MCP23008(GPIO,temp_reg);
 	delay_ms(1);
 
