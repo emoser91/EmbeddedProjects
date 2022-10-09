@@ -2,8 +2,8 @@
   One of the Arduinos will be programmed in SPI Master Mode
   and the second Arduino will be programmed in SPI Slave Mode
 
-  The following code is for the SPI Master Mode, check out the file
-  labeled ArduinoSPISlave to see the SPI Slave side code. 
+  The following code is for the SPI Slave Mode, check out the file
+  labeled ArduinoSPIMaster to see the SPI Master side code. 
 
   Arduino Wiring:
                             Arduino1/Master   |   Arduino2 Slave
@@ -13,22 +13,22 @@
   Source Clock:             SCK   (PB5)           SCK   (PB5)
   Tie GND together!         GND                   GND
 
-  Button Input: PC0
   LED Output:   PC1
 
-  Normal SPI Order of Operations:
+  SPI Order of Operations:
   It's a 4 step process
-  1. Pull the Slave/Chip select LOW
-  2. Send the register to the chip
-  3. Send the value to the chip
-  4. Pull the Slave/Chip select HIGH
+  1. Wait for Pull the Slave/Chip select LOW from SPI Master
+  2. Receive the register to the chip
+  3. Receive the value to the chip
+  4. Once Pull the Slave/Chip select HIGH then no more data to receive
 
-  MY OWN SPI Between Two Arduinos (Master Write/Read):
-  *I do not send a register value and I added an ACK from the Slave
-  1. Pull the Slave/Chip select LOW
-  2. Send the value to the chip
-  3. Pull the Slave/Chip select HIGH
-  4. Check ACK recieved from Arduino SPI Slave
+  MY OWN SPI Between Two Arduinos (Slave Write/Read):
+  *I do not look for Slave/Chip select to go low/high or receive a register value and I send an ACK to the SPI Master
+  *I am not entirely sure if I would even look for Slave/Chip select to go high/low or if all of that is handled in the
+   microcontroller SPI system.
+  1. Wait to receive data
+  2. Receive the value to the chip
+  3. Send ACK to the Arduino SPI Master
 
   The Arduino SPI Master will send SPI data to the Arduino SPI Slave once when the button is pressed. 
   The Arduino SPI Master will blink an LED fast if the data ACK is recieved from the Arduino SPI Slave
@@ -55,7 +55,7 @@
 */
 
 ////////////////////////////////////////////////
-// SPI Master Polling Method
+// SPI Slave Polling Method
 ////////////////////////////////////////////////
 #include <avr/io.h>
 #include <util/delay.h>
@@ -69,12 +69,6 @@
 
 #define ACK     0x7E //Custom value we replay with on the slave side when data is recieved
 #define DATA    0xFF //Custom value we are expecting to recieve from the Master
-
-void Button_Init(void)
-{
-  DDRC &= (~(1<<PORTC0));
-  PORTC |= (1<<PORTC0); //setting pull up resistors
-}
 
 void Led_Init(void)
 {
@@ -100,88 +94,47 @@ void Led_Blink_Fast(void)
     }
 }
 
-//Initialize SPI Master Device
-void Spi_MasterInit(void)
+//Initialize SPI Slave Device
+void SPISlaveInit(void)
 {
-	//set MOSI, SCK and SS as output, the rest default to input
-	DDRB |= (1<<MOSI) | (1<<SCK) | (1<<SS);
-	//set SS to high
-	PORTB |= (1<<SS);
-	//enable master SPI at clock rate Fck/16 = 1Mhz
-	SPCR = (1<<SPE) | (1<<MSTR) | (1<<SPR0);
-}
+	//set MISO as output, the rest default to input
+	DDRB |= (1<<MISO);
 
-//Function to send data
-void SPIMasterSend(uint8_t data)
-{
-  //select slave and drive low
-  PORTB &= ~(1<<SS);
-
-  //send data
-  SPDR = data;
-  //wait for transmition complete
-  while (!(SPSR &(1<<SPIF)));
-
-  //SS to high
-  PORTB |= (1<<SS);
+	//enable SPI in slave mode
+	SPCR = (1<<SPE);
 }
 
 //Function to send and receive data
 unsigned char Spi_Tranceiver (unsigned char data)
 {
-  //select slave and drive low
-  PORTB &= ~(1<<SS);
-
   //send data
   SPDR = data;
   //wait for transmition complete
   while (!(SPSR &(1<<SPIF)));
-
-  //SS to high
-  PORTB |= (1<<SS);
 
   return(SPDR); //Return received data
 }
 
 int main(void)
 {
-  Button_Init();
   Led_Init();
-  Spi_MasterInit(); //Initialize SPI Master
+  SPISlaveInit(); //Initialize SPI Slave
   
-  unsigned char dataRec; //Received data stored
+  unsigned char dataRec = 0; //Received data stored
 
   while(1)
   {
-    uint8_t buttonStatus = PINC & (1<<PORTC0);
-    uint8_t buttonReset; //Make only a single transmission per button click
+    dataRec = Spi_Tranceiver(ACK);
+    // dataRec = Spi_Tranceiver(0x00);//Uncomment and comment out the above line to try sending ACK the master isnt looking for
 
-    if((buttonStatus == 0 ) & (buttonReset == 0)) //Button pressed
+    //Check the data we recieved
+    if(dataRec == 0xFF)
     {
-      buttonReset = 1;
-      dataRec = 0x00; //Reset ACK in "data"
-
-      dataRec = Spi_Tranceiver(DATA); //Send data, receive ACK
-      // dataRec = Spi_Tranceiver(0x00); //Uncomment and comment out the above line to try sending data the slave isnt looking for
-
-      //We have the Slave sending an ACK back when it recieves data
-      if(dataRec == ACK)
-      { 
-        //If received data is the same as ACK, blink LED Fast
-        Led_Blink_Fast();
-      }
-      else
-      {
-        //If received data is not ACK, then blink LED Slow
-        //This will happen if you send data and the slave doesnt recieve it
-        //This can also happen if the slow delays on the slave led blink are in process and you try to send more data (interrupts would solve this)
-        Led_Blink_Slow();
-      }
+      Led_Blink_Fast();
     }
-
-    if(buttonStatus == 1 ) //Button not pressed
+    else
     {
-      buttonReset = 0;
+      Led_Blink_Slow();
     }
   }
 
