@@ -1,6 +1,53 @@
-// #include <ONEWIRE/ds18b20.h>
-// #include <ONEWIRE/onewire.h>
-// #include <ONEWIRE/pindef.h>
+/* This project will read from a DS18B20 Temperature sensor with 1-Wire Serial Communication Protocol
+
+  This project will print out temperature readings in degrees C.
+
+  I found an amazing example and used the code from it to build this project. The full code is in this folder.
+  This code just calls a simple read function that ignores the device address.
+  Normally you would have to do a complete search for your 1wire device as each device has its own unique 64bit ID
+  I also stripped out any other unused functions to help keep the file more readable.
+
+  What is Maxim 1-wire technology:
+  The basis of 1-Wire technology is a serial protocol using a single data line plus ground reference for 
+  communication. A 1-Wire master initiates and controls the communication with one or more 1-Wire slave 
+  devices on the 1-Wire bus. Each 1-Wire slave device has a unique, unalterable, factory-programmed, 
+  64-bit ID (identification number), which serves as device address on the 1-Wire bus. The 8-bit family 
+  code, a subset of the 64-bit ID, identifies the device type and functionality. Typically, 1-Wire slave 
+  devices operate over the voltage range of 2.8V (min) to 5.25V (max). Most 1-Wire devices have no pin 
+  for power supply; they take their energy from the 1-Wire bus (parasitic supply).
+
+  1-Wire Standard Operations:
+  * Write 1 bit: Drive bus low, delay 6us, release bus, delay 64us
+  * Write 0 bit: Drive bus low, delay 60us, release bus, delay 10us
+  * Read bit: Drive bus low, delay 6us, release bus, delay 9us, sample bus to read bit from slave, delay 55us
+  * Reset: Reset the 1Wire bus slave and ready for a command: delay 0us, drive bus low, delay 480us, release bus,
+    delay 70us, sample bus, 0=device(s) present, 1= no device present, delay 410us
+  Note: All delay values are taken from 1Wire Timing spec in folder
+  Note: There is also an Overdrive Mode that has different delay times and bit rates
+
+  Process to reading temp data from DS28B20:
+  Initalization:
+  1. Send a Reset Pulse (Saying is anyone out there?)
+  2. Check for Presence Pulse: device drove line low after reset pulse to say they are there and ready for a command
+  ROM Commands:
+  3. Issue a Skip ROM command 0xCC to allow access to the 1wire device without providing 64bit ROM ID
+     *To read ROM ID of one device on the line, send Read ROM command 0x33 and 1Wire device will respond with its 
+       8bit family code, 48bit serial number and 8bit crc
+     *To talk to one device when many are on the line, send a Match ROM command 0x55 followed by 64bit ROM ID
+     *To find ROM IDs you can use the Search ROM command 0xF0
+  DS18B20 Function Commands:
+  4. Send Convert command 0x44 to initate a single temperature conversion
+  4. Send Read Scratchpad command 0xBE
+  5. Start reading 1Wire line and fill our temperature buffer with data
+     * You have to watch the line and decide if 1 or 0 being recieved then store it
+  6. Process collected data so we can print to USART for USB serial monitor
+  Note: My version just uses the Skip ROM function and the full example does the entire Search ROM system.
+
+  DS18B20 Wiring (breakout board):
+  VCC to 5v
+  DAT to Arduino Pin PD3/Digital3
+  GND to GND
+*/
 
 // AVR
 #include <avr/io.h>
@@ -12,16 +59,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from pindef.h
 //
-//  pindef Functions
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Generic AVR port pin
- */
 typedef struct gpin_t {
     // Pointers to PORT and PIN and DDR registers
     volatile uint8_t *port;
@@ -41,66 +83,66 @@ void gset_bit(const gpin_t* pin);
 void gclear_bit(const gpin_t* pin);
 uint8_t gread_bit(const gpin_t* pin);
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from pindef.c
+//  Just a clean way to set bits high or low (g to global)
+/////////////////////////////////////////////////////////////////////////////////////////////
+
 void gset_output(const gpin_t* pin) {
-    *(pin->ddr) |= _BV(pin->bit);
+    *(pin->ddr) |= (1 << (pin->bit));
 }
 
 void gset_output_high(const gpin_t* pin) {
-    *(pin->port) |= _BV(pin->bit);
+    *(pin->port) |= (1 << (pin->bit));
 }
 
 void gset_output_low(const gpin_t* pin) {
-    *(pin->port) &= ~_BV(pin->bit);
+    *(pin->port) &= ~(1 << (pin->bit));
 }
 
 void gset_bit(const gpin_t* pin) {
-    *(pin->port) |= _BV(pin->bit);
+    *(pin->port) |= (1 << (pin->bit));
 }
 
 void gclear_bit(const gpin_t* pin) {
-    *(pin->port) &= ~_BV(pin->bit);
+    *(pin->port) &= ~(1 << (pin->bit));
 }
 
 uint8_t gread_bit(const gpin_t* pin) {
-    return *(pin->pin) & _BV(pin->bit);
+    return *(pin->pin) & (1 << (pin->bit));
 }
 
 void gset_input_pullup(const gpin_t* pin) {
-    *(pin->ddr) &= ~_BV(pin->bit);
+    *(pin->ddr) &= ~(1 << (pin->bit));
     gset_output_high(pin);
 }
 
 void gset_input_hiz(const gpin_t* pin) {
-    *(pin->ddr) &= ~_BV(pin->bit);
+    *(pin->ddr) &= ~(1 << (pin->bit));
     gset_output_low(pin);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from crc.c
 //
-//  onewire Functions
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+#include <util/crc16.h>
+
+uint8_t crc8(uint8_t* data, uint8_t len) {
+    uint8_t crc = 0;
+
+    for (uint8_t i = 0; i < len; ++i) {
+        crc = _crc_ibutton_update(crc, data[i]);
+    }
+
+    return crc;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from onewire.h
 //
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/**
- * State for the onewire_search function
- * This must be initialised with onewire_search_init() before use.
- */
-typedef struct onewire_search_state {
-
-    // The highest bit position where a bit was ambiguous and a zero was written
-    int8_t lastZeroBranch;
-
-    // Internal flag to indicate if the search is complete
-    // This flag is set once there are no more branches to search
-    bool done;
-
-    // Discovered 64-bit device address (LSB first)
-    // After a successful search, this contains the found device address.
-    // During a search this is overwritten LSB-first with a new address.
-    uint8_t address[8];
-
-} onewire_search_state;
+/////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Send a reset pulse
@@ -124,47 +166,6 @@ uint8_t onewire_read(const gpin_t* io);
  */
 void onewire_skiprom(const gpin_t* io);
 
-/**
- * Address a specific device
- */
-void onewire_match_rom(const gpin_t* io, uint8_t* address);
-
-/**
- * Reset a search state for use in a search
- */
-inline void onewire_search_init(onewire_search_state* state)
-{
-    state->lastZeroBranch = -1;
-    state->done = false;
-
-    // Zero-fill the address
-    memset(state->address, 0, sizeof(state->address));
-}
-
-/**
- * Look for the next slave address on the bus
- *
- * Before the first search call, the state parameter must be initialised using
- * onewire_init_search(state). The same state must be passed to subsequent calls
- * to discover all available devices.
- *
- * The caller is responsible for performing a CRC check on the result if desired.
- *
- * @returns true if a new address was found
- */
-bool onewire_search(const gpin_t* io, onewire_search_state* state);
-
-/**
- * Look for the next slave address on the bus with an alarm condition
- * @see onewire_search()
- */
-bool onewire_alarm_search(const gpin_t* io, onewire_search_state* state);
-
-/**
- * Return true if the CRC byte in a ROM address validates
- */
-bool onewire_check_rom_crc(onewire_search_state* state);
-
 // Special return values
 static const uint16_t kDS18B20_DeviceNotFound = 0xA800;
 static const uint16_t kDS18B20_CrcCheckFailed = 0x5000;
@@ -185,38 +186,12 @@ void ds18b20_convert(const gpin_t* io);
  */
 uint16_t ds18b20_read_single(const gpin_t* io);
 
-/**
- * Read the last temperature conversion from a specific probe
- * Address must be a an array of 8 bytes (uint8_t[8])
- */
-uint16_t ds18b20_read_slave(const gpin_t* io, uint8_t* address);
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from onewire.c
 //
-//  CRC Functions
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-#include <util/crc16.h>
+/////////////////////////////////////////////////////////////////////////////////////////////
 
-uint8_t crc8(uint8_t* data, uint8_t len)
-{
-    uint8_t crc = 0;
-
-    for (uint8_t i = 0; i < len; ++i) {
-        crc = _crc_ibutton_update(crc, data[i]);
-    }
-
-    return crc;
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//  TODO: Check order of things!!
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool onewire_reset(const gpin_t* io)
 {
     // Configure for output
@@ -333,184 +308,15 @@ uint8_t onewire_read(const gpin_t* io)
     return buffer;
 }
 
-void onewire_match_rom(const gpin_t* io, uint8_t* address)
-{
-    // Write Match Rom command on bus
-    onewire_write(io, 0x55);
-
-    // Send the passed address
-    for (uint8_t i = 0; i < 8; ++i) {
-        onewire_write(io, address[i]);
-    }
-}
-
 void onewire_skiprom(const gpin_t* io)
 {
     onewire_write(io, 0xCC);
 }
 
-/**
- * Search procedure for the next ROM addresses
- *
- * This algorithm is bit difficult to understand from the diagrams in Maxim's
- * datasheets and app notes, though its reasonably straight forward once
- * understood.  I've used the name "last zero branch" instead of Maxim's name
- * "last discrepancy", since it describes how this variable is used.
- *
- * A device address has 64 bits. With multiple devices on the bus, some bits
- * are ambiguous.  Each time an ambiguous bit is encountered, a zero is written
- * and the position is marked.  In subsequent searches at ambiguous bits, a one
- * is written at this mark, zeros are written after the mark, and the bit in
- * the previous address is copied before the mark. This effectively steps
- * through all addresses present on the bus.
- *
- * For reference, see either of these documents:
- *
- *  - Maxim application note 187: 1-Wire Search Algorithm
- *    https://www.maximintegrated.com/en/app-notes/index.mvp/id/187
- *
- *  - Maxim application note 937: Book of iButton® Standards (pages 51-54)
- *    https://www.maximintegrated.com/en/app-notes/index.mvp/id/937
- *
- * @see onewire_search()
- * @returns true if a new address was found
- */
-static bool _search_next(const gpin_t* io, onewire_search_state* state)
-{
-    // States of ROM search reads
-    enum {
-        kConflict = 0b00,
-        kZero = 0b10,
-        kOne = 0b01,
-    };
-
-    // Value to write to the current position
-    uint8_t bitValue = 0;
-
-    // Keep track of the last zero branch within this search
-    // If this value is not updated, the search is complete
-    int8_t localLastZeroBranch = -1;
-
-    for (int8_t bitPosition = 0; bitPosition < 64; ++bitPosition) {
-
-        // Calculate bitPosition as an index in the address array
-        // This is written as-is for readability. Compilers should reduce this to bit shifts and tests
-        uint8_t byteIndex = bitPosition / 8;
-        uint8_t bitIndex = bitPosition % 8;
-
-        // Configure bus pin for reading
-        gset_input_hiz(io);
-
-        // Read the current bit and its complement from the bus
-        uint8_t reading = 0;
-        reading |= onewire_read_bit(io); // Bit
-        reading |= onewire_read_bit(io) << 1; // Complement of bit (negated)
-
-        switch (reading) {
-            case kZero:
-            case kOne:
-                // Bit was the same on all responding devices: it is a known value
-                // The first bit is the value we want to write (rather than its complement)
-                bitValue = (reading & 0x1);
-                break;
-
-            case kConflict:
-                // Both 0 and 1 were written to the bus
-                // Use the search state to continue walking through devices
-                if (bitPosition == state->lastZeroBranch) {
-                    // Current bit is the last position the previous search chose a zero: send one
-                    bitValue = 1;
-
-                } else if (bitPosition < state->lastZeroBranch) {
-                    // Before the lastZeroBranch position, repeat the same choices as the previous search
-                    bitValue = state->address[byteIndex] & (1 << bitIndex);
-
-                } else {
-                    // Current bit is past the lastZeroBranch in the previous search: send zero
-                    bitValue = 0;
-                }
-
-                // Remember the last branch where a zero was written for the next search
-                if (bitValue == 0) {
-                    localLastZeroBranch = bitPosition;
-                }
-
-                break;
-
-            default:
-                // If we see "11" there was a problem on the bus (no devices pulled it low)
-                return false;
-        }
-
-        // Write bit into address
-        if (bitValue == 0) {
-            state->address[byteIndex] &= ~(1 << bitIndex);
-        } else {
-            state->address[byteIndex] |= (bitValue << bitIndex);
-        }
-
-        // Configure for output
-        gset_output_high(io);
-        gset_output(io);
-
-        // Write bit to the bus to continue the search
-        onewire_write_bit(io, bitValue);
-    }
-
-    // If the no branch points were found, mark the search as done.
-    // Otherwise, mark the last zero branch we found for the next search
-    if (localLastZeroBranch == -1) {
-        state->done = true;
-    } else {
-        state->lastZeroBranch = localLastZeroBranch;
-    }
-
-    // Read a whole address - return success
-    return true;
-}
-
-static inline bool _search_devices(uint8_t command, const gpin_t* io, onewire_search_state* state)
-{
-    // Bail out if the previous search was the end
-    if (state->done) {
-        return false;
-    }
-
-    if (!onewire_reset(io)) {
-        // No devices present on the bus
-        return false;
-    }
-
-    onewire_write(io, command);
-    return _search_next(io, state);
-}
-
-bool onewire_search(const gpin_t* io, onewire_search_state* state)
-{
-    // Search with "Search ROM" command
-    return _search_devices(0xF0, io, state);
-}
-
-bool onewire_alarm_search(const gpin_t* io, onewire_search_state* state)
-{
-    // Search with "Alarm Search" command
-    return _search_devices(0xEC, io, state);
-}
-
-bool onewire_check_rom_crc(onewire_search_state* state)
-{
-    // Validate bits 0..56 (bytes 0 - 6) against the CRC in byte 7 (bits 57..63)
-    return state->address[7] == crc8(state->address, 7);
-}
-
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+//  Contents used from ds18b20.c
 //
-//  ds18b20 Functions
-//
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
 
 // Command bytes
 static const uint8_t kConvertCommand = 0x44;
@@ -548,22 +354,8 @@ uint16_t ds18b20_read_single(const gpin_t* io)
     }
 
     // Reading a single device, so skip sending a device address
-    onewire_skiprom(io);
-    onewire_write(io, kReadScatchPad);
-
-    // Read the data from the scratch pad
-    return ds18b20_readScratchPad(io);
-}
-
-uint16_t ds18b20_read_slave(const gpin_t* io, uint8_t* address)
-{
-    // Confirm the device is still alive. Abort if no reply
-    if (!onewire_reset(io)) {
-        return kDS18B20_DeviceNotFound;
-    }
-
-    onewire_match_rom(io, address);
-    onewire_write(io, kReadScatchPad);
+    onewire_skiprom(io); //Send SKIP ROM command 0xCC
+    onewire_write(io, kReadScatchPad); //Send Read Scratchpad command 0xBE
 
     // Read the data from the scratch pad
     return ds18b20_readScratchPad(io);
@@ -576,18 +368,16 @@ void ds18b20_convert(const gpin_t* io)
     onewire_write(io, kConvertCommand);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+// Int Main
 //
-//  Int Main
+// Program will read the DS18B20 Temperature sensor with 1-wire protocol and output the
+// result through USART to USB that can then be read through a serial monitor.
+// Serial Monitor Settings: baud: 9600, data bits: 8, stop bits: 1, COM: Arduino Com port
 //
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/**
- * Set up the ATmega328P's UART peripheral to transmit
- *
- * The contents of this may need to be changed if you're using a different chip
- * or a different CPU frequency.
- */
+// I used my own USART init from the USART project I did because the example project
+// USART wasnt working for me.
+/////////////////////////////////////////////////////////////////////////////////////////////
 #define USART_BAUDRATE 9600 // Desired Baud Rate
 
 #define NORMAL_SPEED 16UL //Asynchronous normal speed mode when U2X0=0
@@ -623,9 +413,9 @@ void init_usart(void)
 	// Set Frame Format
 	UCSR0C = ASYNCHRONOUS | PARITY_MODE | STOP_BIT | DATA_BIT;
 
-    // Set U2X0 for double speed operation
-    // Arduino defalut U2X0=1 so we will change it
-    UCSR0A = ~(1<<U2X0); //U2X0=0 for Asynchronous normal speed mode
+  // Set U2X0 for double speed operation
+  // Arduino defalut U2X0=1 so we will change it
+  UCSR0A = ~(1<<U2X0); //U2X0=0 for Asynchronous normal speed mode
 	
 	// Enable Receiver and Transmitter
 	UCSR0B = (1<<RXEN0) | (1<<TXEN0);
@@ -634,9 +424,7 @@ void init_usart(void)
 	sei();
 }
 
-/**
- * Send a single byte out over serial (blocking)
- */
+/* Send a single byte out over serial (blocking) */
 void usart_transmit(uint8_t data)
 {
     // Wait for empty transmit buffer
@@ -646,9 +434,7 @@ void usart_transmit(uint8_t data)
     UDR0 = data;
 }
 
-/**
- * Block until a single byte is received over serial
- */
+/* Block until a single byte is received over serial */
 uint8_t usart_receive(void)
 {
     // Wait for data to be received
@@ -658,9 +444,7 @@ uint8_t usart_receive(void)
     return UDR0;
 }
 
-/**
- * Print a null-terminated string
- */
+/* Print a null-terminated string */
 void print(char* string)
 {
     uint8_t i = 0;
@@ -670,13 +454,11 @@ void print(char* string)
     }
 }
 
-/**
- * Print a null-terminated string followed by an automatic line break
- */
+/* Print a null-terminated string followed by an automatic line break */
 void println(char* string)
 {
     print(string);
-    usart_transmit('\n');
+    usart_transmit('\n\r');
 }
 
 /**
@@ -687,11 +469,7 @@ void println(char* string)
  */
 void fptoa(uint16_t value, char* buf, uint8_t bufsize)
 {
-    const uint16_t integer = (value >> 4); //original!
-
-    // uint16_t integer = (value >> 4); //my convert to F degrees, need to convert with the decimal though!!!! Still the C decimal
-    // integer = ( (9 * integer) + 160 ) / 5; //my convert to F degrees
-
+    const uint16_t integer = (value >> 4);
     const uint16_t decimal = (value & 0x0F) * 625; // One 16th is 0.625
 
     memset(buf, '\0', bufsize);
@@ -718,56 +496,45 @@ void fptoa(uint16_t value, char* buf, uint8_t bufsize)
     itoa(decimal, buf, 10);
 }
 
+// Declare the Pin location of our Temperature Sensor: PD3
 const static gpin_t sensorPin = { &PORTD, &PIND, &DDRD, PD3 };
 
 int main(void)
 {
     init_usart();
 
-    for (;;) {
+    while(1) 
+    {
+        // Send Reset command and check that our device is alive
         if (!onewire_reset(&sensorPin)) {
             println("Nothing on the bus?");
             _delay_ms(1000);
             continue;
         }
 
-        // Intiate conversion and wait for it to finish
+        // Send Skip ROM command and Send Convert command to intiate temperature conversion
         ds18b20_convert(&sensorPin);
-        _delay_ms(750);
+        _delay_ms(750); // Wait for it to finish
 
-        // Prepare a new device search
-        onewire_search_state search;
-        onewire_search_init(&search);
+        // Send Skip ROM command and Send Read Scratchpad command to read temperature value
+        uint16_t reading = ds18b20_read_single(&sensorPin);
 
-        // Search and dump temperatures until we stop finding devices
-        while (onewire_search(&sensorPin, &search)) {
-            if (!onewire_check_rom_crc(&search)) {
-                print("Bad ROM CRC");
-                continue;
-            }
-
-            uint16_t reading = ds18b20_read_slave(&sensorPin, search.address);
-
-            if (reading != kDS18B20_CrcCheckFailed) {
-                // You can get the temperature as floating point degrees if needed, though
-                // working with floats on small AVRs eats up a lot of cycles and code space:
-                
-                  // float temperature = ((float) reading) / 16;
-                
-
-                // Convert fixed-point to a printable string
-                char buf[10];
-                fptoa(reading, buf, sizeof(buf));
-                print(buf);
-
-            } else {
-                println("Bad temp CRC");
-            }
-
-            print("  ");
+        // Check CRC on Data Reading
+        if (reading != kDS18B20_CrcCheckFailed)
+        {
+            // Process collected data: Convert fixed-point to a printable string
+            char buf[10];
+            fptoa(reading, buf, sizeof(buf));
+            // Print out temperature value to USART serial line
+            print(buf);
+        } 
+        else 
+        {
+            println("Bad temp CRC");
         }
 
-        print("\r\n"); //For putty default settings. 
+        // New line
+        print("\r\n");
     }
 
     return 0;
