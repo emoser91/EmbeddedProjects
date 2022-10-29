@@ -8,8 +8,6 @@
   remove it and place it on the breadboard and wire it up as shown in the wiring digram pictures
   in the documents folder of this project. Alternatively, you can also program the chip already wired
   up on the breadboard with a second Arduino Uno which is shown in the Arduino Document in the folder.
-  I believe you might also be able to use the PIC3 Programmer I own to program it as well but it might
-  need a little more setup to do so.
 
   It is imporatant to use the right load capacitors with you osillator crystal and there are documents
   included that show how to go about that calculation with a formula.
@@ -26,11 +24,35 @@
   clock source as well as a few other settings. The Atmega328p has an internal 8Mhz clock that can be
   set by setting the FUSE BITS. I guess the internal 8Mhz clock has a horrible rate of error of 10%
   so it isnt really useful for anything that needs accurate timing. You will need to use the Arduino IDE
-  to set the fuse bits as that what all the examples use. The following Youtube video shows
-  how you can set FUSE BITS: https://www.youtube.com/watch?v=Q2DakPocvfs. There is a second method
-  of setting FUSE BITS shown in the Arduino Document in the folder. It has you download a hardware
-  configuration file and then place it in a specific location to allow the Arduino IDE to set the
-  FUSE BITS when it programs.
+  to set the fuse bits as that what all the examples use.
+
+  Steps to gettting Arduino IDE Setup programming Atmega328p chip to use 8Mhz Internal Clock:
+  1. Go to File/Examples/11.ArduinoISP and click to open the example. Upload the program an Arduino Uno with the example code
+     and it is now an ISP programmer. We are using SPI serial protocol to program.
+  2. Open a new Sketch
+  3. Go to File/Preferences and in window paste the following into the "Additional Board Manager URL" section and click OK
+     https://mcudude.github.io/MiniCore/package_MCUdude_MiniCore_index.json
+  4. Go to Tool/Board:/Board Manager search for Minicore and install
+  5. Go to Tools/Board and select Minicore atmega328
+     You will now see all the options to change Fuse Bits to change the clock and other settings
+  7. Go to Tools/Clock and select INTERNAL 8Mhz (MAKE SURE IT IS INTERNAL!!!)
+     If you were to select an external by accident, you would have to set up an external clock circuit to even program it again to change it back
+  8. Go to Tools/COM Port and select the port for the Arduino Uno
+  9. Go to Tools/Programmer and select Arduino as ISP
+  10. Wire project up and then click to BURN BOOTLOADER to change the Fuse bits
+  11. You should be able to click Upload to upload your code to the atmega328p now running at 8Mhz
+  Note: If the bootload burning fails then you will most likely need to have an 16Mhz external clock setup for your breadboard arduino
+        or you could just leave the chip in the Arduino so it gets its 16Mhz clock still use the second arduino as the ISP Programmer
+        and then pull the chip out once bootloader is burned.
+  Note: There is an old wiring option and new wiring option to choose from in the Arduino ISP code for how you want to connect two arduinos
+  Note: You can look at the Arduino Document link below for this process. I used the Minicore but Arduino uses a different file. Its the
+        same procedure pretty much with more setting in the Minicore.
+  
+  Arduino as ISP Wiring:
+  See Arduino Document Link below and follow.
+
+  Atmega328p Wiring:
+  See Arduino and Wiring documents listed below.
 
   Link to Arduino Document: https://docs.arduino.cc/built-in-examples/arduino-isp/ArduinoToBreadboard
   Link to Wiring Setup: https://www.instructables.com/How-to-Build-an-Arduino-Uno-on-a-BreadBoard/
